@@ -1,4 +1,5 @@
 const currentChatUserId = Number(document.getElementById('chat-box')?.getAttribute('data-user-id'));
+const roomId = document.getElementById('chat-message')?.getAttribute('data-chat-room-id');
 
 const applyComment = (comment) => {
     const commentTemplate = `<div class="flex gap-4 items-start mb-5">
@@ -18,7 +19,7 @@ const applyComment = (comment) => {
                 .replace(':comment', comment.comment);
 }
 
-const applyChat = (chat, userId) => {
+export const applyChat = (chat, userId) => {
    const chatTemplate = `<div class="flex gap-3:position">
                 <div class="flex justify-center items-center rounded-full text-white bg-yellow-400 w-10 h-10 font-medium">:avatar</div>
                 <div class="rounded-3xl text-gray-600 w-fit max-w-[70%] break-words py-2 px-5 bg-slate-100">:message</div>
@@ -29,10 +30,22 @@ const applyChat = (chat, userId) => {
                 .replace(':position', chat.user_id === userId ? ' flex-row-reverse' : '')
 }
 
-const loadChat = (userId) => {
+const pushNewMessage = (data) => {
+    axios({
+        method: 'post',
+        url: '/new-message',
+        data
+    })
+        .then(() => {
+            document.getElementById('chat-message').value = '';
+            scrollChatToBottom();
+        });
+}
+
+export const loadChat = (roomId) => {
     axios({
         method: 'get',
-        url: `/chat-message/${userId}`
+        url: `/chat-message/${roomId}`
     })
         .then((res) => {
             for (const chat of res.data.chats) {
@@ -42,7 +55,7 @@ const loadChat = (userId) => {
         });
 }
 
-const scrollChatToBottom = () => {
+export const scrollChatToBottom = () => {
     const chatboxElement = document.getElementById('chat-box-content');
     chatboxElement.scrollTo({
         top: chatboxElement.scrollHeight,
@@ -104,8 +117,8 @@ document.getElementById('chat-box-icon')?.addEventListener('click', function () 
 
     if (document.getElementById('chat-box-content').hasChildNodes()) {
         scrollChatToBottom();
-    } else {
-        loadChat(currentChatUserId);
+    } else if (roomId) {
+        loadChat(roomId);
     }
 });
 
@@ -154,54 +167,29 @@ document.getElementById('update-order-status')?.addEventListener('change', funct
 
 document.getElementById('chat-message')?.addEventListener('keyup', function (e) {
     if (e.code === 'Enter') {
-        axios({
-            method: 'post',
-            url: '/new-message',
-            data: {
-                room_user_id: document.getElementById('chat-box').getAttribute('data-room-user-id'),
-                message: this.value
-            }
+        pushNewMessage({
+            message: this.value,
+            room_id: this.getAttribute('data-chat-room-id')
         })
-            .then(() => {
-                document.getElementById('chat-message').value = '';
-                scrollChatToBottom();
-            });
     }
 });
 
-document.querySelectorAll('[id^=room-]').forEach((el) => {
-    el.addEventListener('click', function () {
-        const chatboxContent = document.getElementById('chat-box-content');
-        while (chatboxContent.firstChild) {
-            chatboxContent.removeChild(chatboxContent.firstChild);
-        }
-        const roomUserId = this.getAttribute('data-user-id');
-        document.getElementById('chat-box').setAttribute('data-room-user-id', roomUserId);
-        document.getElementById('chat-name').textContent = this.getAttribute('data-user-name');
-        loadChat(roomUserId)
-    });
-});
+if (roomId) {
+    Echo.join(`chat.${roomId}`)
+        .listen('NewMessage', (e) => {
+            document.getElementById('chat-box-content').insertAdjacentHTML('beforeend', applyChat(e.chat, currentChatUserId));
+            scrollChatToBottom();
+        });
+}
 
-Echo.channel('chat')
-    .listen('NewMessageChat', (e) => {
-        document.getElementById('chat-box-content').insertAdjacentHTML('beforeend', applyChat(e.data, currentChatUserId));
-        scrollChatToBottom();
-    });
+if (/^\/orders\/\d+/.test(location.pathname)) {
+    const orderId = document.querySelector('[data-order-id]').getAttribute('data-order-id');
 
-onload = () => {
-    if (/^\/orders\/\d+/.test(location.pathname)) {
-        const orderId = document.querySelector('[data-order-id]').getAttribute('data-order-id');
-
-        axios({
-            method: 'get',
-            url: `/orders/review/${orderId}`
+    axios({
+        method: 'get',
+        url: `/orders/review/${orderId}`
+    })
+        .then((res) => {
+            loadComments(res.data.reviews);
         })
-            .then((res) => {
-                loadComments(res.data.reviews);
-            })
-    }
-
-    if (/^\/customer-service/.test(location.pathname)) {
-        document.querySelector('[id^=room-]').click();
-    }
 }

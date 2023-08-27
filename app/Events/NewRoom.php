@@ -8,18 +8,16 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class NewMessageChat implements ShouldBroadcast
+class NewRoom implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $data;
-    
     /**
      * Create a new event instance.
      */
-    public function __construct($data)
+    public function __construct(public array $data)
     {
-        $this->data = $data;
+        //
     }
 
     /**
@@ -27,8 +25,10 @@ class NewMessageChat implements ShouldBroadcast
      *
      * @return array<int, \Illuminate\Broadcasting\Channel>
      */
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('chat');
+        return [
+            new Channel('new-room'),
+        ];
     }
 }

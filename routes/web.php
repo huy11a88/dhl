@@ -40,7 +40,8 @@ Route::group(['middleware' => 'auth'], function () {
     });
 
     Route::post('/new-message', [ChatController::class, 'newMessage']);
-    Route::get('/chat-message/{user}', [ChatController::class, 'getByUserId']);
+    Route::get('/chat-message/{roomId}', [ChatController::class, 'getByRoomId']);
 
     Route::get('/customer-service', [ChatController::class, 'customerService'])->name('customer-service');
+    Route::get('/chat-rooms/all', [ChatController::class, 'getAllChatRooms'])->middleware('role:2');
 });

@@ -37,14 +37,14 @@
                 @csrf
                 <label for="recipient_address" class="block">
                     <span>From</span>
-                    <input id="recipient_address" type="text" name="recipient_address" class="block w-full" placeholder="Recipient address" />
+                    <input id="recipient_address" type="text" name="recipient_address" class="block w-full" placeholder="Recipient address" value="{{ old('recipient_address') }}" />
                     @error('recipient_address')
                         <p class="text-red-500">{{ $message }}</p>
                     @enderror
                 </label>
                 <label for="shipping_address" class="block">
                     <span>To</span>
-                    <input id="shipping_address" type="text" name="shipping_address" class="block w-full" placeholder="Shipping address" />
+                    <input id="shipping_address" type="text" name="shipping_address" class="block w-full" placeholder="Shipping address" value="{{ old('shipping_address') }}" />
                     @error('shipping_address')
                         <p class="text-red-500">{{ $message }}</p>
                     @enderror

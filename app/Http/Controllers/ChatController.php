@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
-use App\Events\NewMessageChat;
+use App\Events\NewMessage;
+use App\Events\NewRoom;
 use App\Models\Chat;
 use App\Models\ChatRoom;
 use App\Models\User;
@@ -15,16 +15,16 @@ class ChatController extends Controller
     {
         $user = $request->user();
         
-        if ($user->role === UserRole::CUSTOMER_SERVICE_STAFF) {
-            $roomId = ChatRoom::query()->where('name', 'chat.' . $request->input('room_user_id'))->value('id');
-        } else {
-            $roomId = ChatRoom::query()->where('name', 'chat.' . $user->id)->value('id');
-            $isFirstMessage = $user->role == UserRole::NORMAL_USER && !$roomId;
-    
-            if ($isFirstMessage) {
-                $room = ChatRoom::create(['name' => 'chat.' . $user->id]);
-                $roomId = $room->id;
-            }
+        if (!($roomId = $request->input('room_id'))) {
+            $room = ChatRoom::create(['name' => 'chat.' . $user->id]);
+            $roomId = $room->id;
+            User::query()->whereKey($user->id)->update(['room_id' => $roomId]);
+            NewRoom::dispatch([
+                'user_id' => $user->id,
+                'room_id' => $roomId,
+                'user_name' => $user->name,
+                'avatar' =>strtoupper($user->name[0])
+            ]);
         }
 
         $chat = Chat::create([
@@ -34,20 +34,19 @@ class ChatController extends Controller
         ]);
 
         $data = [
+            'chat_room_id' => $chat->chat_room_id,
             'user_id' => $chat->user_id,
             'message' => $chat->message,
             'avatar' => strtoupper($user->name[0])
         ];
 
-        NewMessageChat::dispatch($data);
+        NewMessage::dispatch($data);
 
         return response()->json(['status' => 'success']);
     }
 
-    public function getByUserId($userId)
+    public function getByRoomId($roomId)
     {
-        $roomId = ChatRoom::query()->where('name', 'chat.' . $userId)->value('id');
-
         $chats = Chat::with('user:id,name')->where('chat_room_id', $roomId)
             ->get()
             ->transform(function ($chat) {
@@ -63,12 +62,7 @@ class ChatController extends Controller
 
     public function customerService()
     {
-        $userIds = ChatRoom::all()
-            ->transform(function ($room) {
-                return explode('.', $room->name)[1];
-            });
-
-        $users = User::query()->select(['id', 'name'])->whereIn('id', $userIds)
+        $users = User::query()->select(['id', 'name', 'room_id'])->whereNotNull('room_id')
             ->get()
             ->transform(function ($user) {
                 $user->avatar = strtoupper($user->name[0]);
@@ -76,5 +70,10 @@ class ChatController extends Controller
             });
 
         return view('customer-service', compact('users'));
+    }
+
+    public function getAllChatRooms()
+    {
+        return response()->json(['status' => 'success', 'chat_rooms' => ChatRoom::all()]);
     }
 }

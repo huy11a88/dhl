@@ -18,5 +18,6 @@
     @if (auth()->check() && $roleNormalUser->is(auth()->user()->role))
         <x-chat-box/>
     @endif
+    @stack('script')
 </body>
 </html>

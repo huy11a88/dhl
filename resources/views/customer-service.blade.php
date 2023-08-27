@@ -4,9 +4,12 @@
             <div class="grid grid-cols-4 h-full">
                 <div class="border">
                     <p class="p-3 text-center">Chat Support</p>
-                    <div class="border-t h-[550px] overflow-y-scroll flex flex-col gap-4 p-3">
+                    <div id="rooms-list" class="border-t h-[550px] overflow-y-scroll flex flex-col gap-4 p-3">
+                        @if ($users->count() === 0)
+                            <p id="no-rooms" class="text-center">No room available!</p>
+                        @endif
                         @foreach ($users as $user)
-                            <div id="room-{{ $user->id }}" class="flex gap-3 cursor-pointer" data-user-id="{{ $user->id }}" data-user-name="{{ $user->name }}" >
+                            <div id="room-{{ $user->id }}" class="flex gap-3 cursor-pointer" data-user-id="{{ $user->id }}" data-user-name="{{ $user->name }}" data-room-id="{{ $user->room_id }}" >
                                 <div class="flex justify-center items-center rounded-full text-white bg-yellow-500 w-10 h-10 font-medium">{{ $user->avatar }}</div>
                                 <div class="flex flex-col grow">
                                     {{ $user->name }}
@@ -36,4 +39,7 @@
             </div>
         </div>
     </div>
+    @push('script')
+        @vite(['resources/js/cs_chat.js'])
+    @endpush
 </x-layout>

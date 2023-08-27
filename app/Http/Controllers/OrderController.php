@@ -44,12 +44,11 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $isShippingStaff = auth()->user()?->role === UserRole::SHIPPING_STAFF;
+        $isShippingStaff = $request->user()?->role === UserRole::SHIPPING_STAFF;
 
-        if ($query = $request->query()) {
-            $searchText = $query['search-text'];
-            $searchShippingDate = $query['search-shipping-date'];
-
+        $searchText = $request->query('search-text');
+        $searchShippingDate = $request->query('search-shipping-date');
+        if ($searchText || $searchShippingDate) {
             $orders = Order::query()->select([
                 'orders.id',
                 'name',
